@@ -9,7 +9,11 @@ def run_full_analysis(tf_data: dict[str, pd.DataFrame]) -> dict:
     mtf_result = aggregate_timeframes(tf_data)
 
     # ML prediction (uses 5m data as primary)
-    primary_df = tf_data.get("5m") or tf_data.get("15m") or next(iter(tf_data.values()), pd.DataFrame())
+    primary_df = tf_data.get("5m")
+    if primary_df is None or primary_df.empty:
+        primary_df = tf_data.get("15m")
+    if primary_df is None or primary_df.empty:
+        primary_df = next(iter(tf_data.values()), pd.DataFrame())
     ml_result = ml_predict(primary_df)
 
     # Merge ML signal into overall signal

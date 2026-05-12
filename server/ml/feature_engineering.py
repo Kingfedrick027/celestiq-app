@@ -111,12 +111,12 @@ def _rsi(series: pd.Series, period: int = 14) -> float:
     return float(val) if not pd.isna(val) else 50.0
 
 
-def build_training_dataset(df: pd.DataFrame, forward_bars: int = 3, threshold_pct: float = 0.3) -> tuple:
+def build_training_dataset(df: pd.DataFrame, forward_bars: int = 3, threshold_pct: float = 0.3, lookback: int = 100) -> tuple:
     X, y = [], []
-    min_bars = 60
+    min_bars = max(60, lookback)
 
     for i in range(min_bars, len(df) - forward_bars):
-        window = df.iloc[:i]
+        window = df.iloc[max(0, i - lookback):i]  # fixed-size window — O(n) not O(n^2)
         features = extract_features(window)
 
         future_high = df["high"].iloc[i:i + forward_bars].max()

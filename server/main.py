@@ -76,9 +76,12 @@ async def get_candles(timeframe: str, limit: int = 200):
     df = await loop.run_in_executor(None, lambda: fetch_candles_yfinance(timeframe, limit))
     if df.empty:
         return JSONResponse(status_code=503, content={"error": "No data"})
-    records = df.reset_index().rename(columns={"index": "time", "Datetime": "time"})
-    records["time"] = records.index.astype(str) if "time" not in records.columns else records["time"].astype(str)
-    return JSONResponse(content={"timeframe": timeframe, "candles": df.reset_index().to_dict(orient="records")})
+    df2 = df.reset_index()
+    df2.columns = [str(c) for c in df2.columns]
+    time_col = df2.columns[0]
+    df2[time_col] = df2[time_col].astype(str)
+    candles = df2.rename(columns={time_col: "time"}).to_dict(orient="records")
+    return JSONResponse(content={"timeframe": timeframe, "candles": candles})
 
 
 @app.post("/train")
