@@ -65,6 +65,8 @@ def _clean_for_json(obj):
         return int(obj)
     elif isinstance(obj, (np.floating, np.float64, np.float32)):
         return float(obj)
+    elif isinstance(obj, np.bool_):
+        return bool(obj)
     elif isinstance(obj, np.ndarray):
         return obj.tolist()
     elif isinstance(obj, pd.DataFrame):

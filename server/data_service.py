@@ -144,10 +144,45 @@ async def fetch_candles_twelve_data(interval: str = "5m", limit: int = 200) -> p
         return fetch_candles_yfinance(interval, limit)
 
 
+def fetch_candles_twelve_data_sync(interval: str = "5m", limit: int = 200) -> pd.DataFrame:
+    if not TWELVE_DATA_API_KEY:
+        return fetch_candles_yfinance(interval, limit)
+
+    td_interval = INTERVAL_MAP[interval]
+    url = "https://api.twelvedata.com/time_series"
+    params = {
+        "symbol": SYMBOL,
+        "interval": td_interval,
+        "outputsize": limit,
+        "apikey": TWELVE_DATA_API_KEY,
+        "format": "JSON",
+    }
+
+    try:
+        with httpx.Client(timeout=15) as client:
+            resp = client.get(url, params=params)
+            data = resp.json()
+
+        if data.get("status") == "error" or "values" not in data:
+            return fetch_candles_yfinance(interval, limit)
+
+        records = data["values"]
+        df = pd.DataFrame(records)
+        df["datetime"] = pd.to_datetime(df["datetime"])
+        df = df.set_index("datetime").sort_index()
+        for col in ["open", "high", "low", "close", "volume"]:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+        df = df[["open", "high", "low", "close", "volume"]].dropna()
+        return df
+
+    except Exception:
+        return fetch_candles_yfinance(interval, limit)
+
+
 def fetch_candles_all_timeframes() -> dict[str, pd.DataFrame]:
     result = {}
     for tf in ["5m", "15m", "1h", "4h"]:
-        result[tf] = fetch_candles_yfinance(tf)
+        result[tf] = fetch_candles_twelve_data_sync(tf)
     return result
 
 
